@@ -48,7 +48,18 @@ function playMusic(targetMusic) {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  // レスポンシブ対応: キャンバスサイズを適切に設定
+  let canvas = createCanvas(windowWidth, windowHeight);
+  // キャンバスをmain要素に配置
+  let mainElement = document.querySelector('main');
+  if (mainElement) {
+    canvas.parent(mainElement);
+  }
+  
+  // タッチイベントを有効化（モバイル対応）
+  if (typeof touchStarted !== 'undefined') {
+    // タッチイベントは後で定義
+  }
 
   //Polar bear spritesheet has 3 rows and 4 cols
   let w = int(spriteSheet.width / 3);
@@ -93,8 +104,14 @@ function setup() {
 
 //function to resize everything for the full-screen mode
 function windowResized() {
+  // レスポンシブ対応: ウィンドウサイズに合わせてキャンバスをリサイズ
   resizeCanvas(windowWidth, windowHeight);
   adjustLayout();
+  
+  // スライダーの位置も調整
+  if (slider) {
+    slider.position(100, 50);
+  }
 }
 
 //function to adjust the size of everything 
@@ -120,11 +137,19 @@ function adjustLayout() {
 //function to do fullscreen mode
 function keyTyped() {
   // $$$ For some reason on Chrome/Mac you may have to press f twice to toggle. Works correctly on Firefox/Mac
-  if (key === "f") {
+  if (key === "f" || key === "F") {
     toggleFullscreen();
+    return false; // デフォルトの動作を防ぐ
   }
-  // uncomment to prevent any default behavior
-  // return false;
+}
+
+// フルスクリーン切り替えのためのキーボードショートカット（キー押下時）
+function keyPressed() {
+  // ESCキーでフルスクリーンを終了
+  if (keyCode === ESCAPE && fullscreen()) {
+    toggleFullscreen();
+    return false;
+  }
 }
 
 function toggleFullscreen() {
@@ -136,6 +161,15 @@ function toggleFullscreen() {
     resizeCanvas(windowWidth, windowHeight);
     adjustLayout();
   }, 500);
+}
+
+// フルスクリーン状態の変更を検知
+function fullscreenchanged() {
+  // フルスクリーン状態が変更されたときにレイアウトを調整
+  setTimeout(() => {
+    resizeCanvas(windowWidth, windowHeight);
+    adjustLayout();
+  }, 100);
 }
 
 //variable to track previous game state 
@@ -180,7 +214,19 @@ function startPage() {
   
   //background image
   imageMode(CENTER);
-  image(startingImage, width / 2, height / 2, width, height);
+  // レスポンシブ対応: 画像サイズを調整
+  let imgWidth = width;
+  let imgHeight = height;
+  let aspectRatio = startingImage.width / startingImage.height;
+  let canvasAspect = width / height;
+  
+  if (aspectRatio > canvasAspect) {
+    imgHeight = width / aspectRatio;
+  } else {
+    imgWidth = height * aspectRatio;
+  }
+  
+  image(startingImage, width / 2, height / 2, imgWidth, imgHeight);
 
   //display buttons
   button(
@@ -195,6 +241,9 @@ function startPage() {
     height * 0.80,
     () => (gameState = "info")
   );
+  
+  // フルスクリーンボタンを表示（小さなボタン）
+  drawFullscreenButton();
 }
 
 
@@ -207,8 +256,9 @@ function instructionPage() {
 
   //Adjust the text size based on the fullscreen mode 
   let fs = fullscreen();
-  let titleSize = fs ? width * 0.035 : width * 0.045;
-  let bodySize = fs ? width * 0.022 : width * 0.025;
+  // フォントサイズを調整：通常モードではさらに小さく
+  let titleSize = min(fs ? width * 0.025 : width * 0.02, fs ? 48 : 36);
+  let bodySize = min(fs ? width * 0.015 : width * 0.012, fs ? 24 : 18);
 
   //title 
   textSize(titleSize);
@@ -235,9 +285,9 @@ function instructionPage() {
     "2. Yellow balls are called “power-ups.” If you collect them, you get 1 iceberg back.";
 
   //Center text block on the screen
-  const textWidthLimit = width * 0.7; //width of text block
-  const textHeight = height * 0.6; //total text area height
-  const textY = (height - textHeight) / 2; //vertically centered
+  const textWidthLimit = width * 0.75; //width of text block（少し広く）
+  const textHeight = height * 0.65; //total text area height
+  const textY = height * 0.15; //上部から開始（少し下に）
 
   text(instructions, width / 2, textY, textWidthLimit);
 
@@ -259,9 +309,9 @@ function informationPage() {
 
   let fs = fullscreen();
 
-  //change the font side accordingly
-  let titleSize = fs ? width * 0.03 : width * 0.04;
-  let bodySize = fs ? width * 0.022 : width * 0.025;
+  //change the font side accordingly（フォントサイズを調整：通常モードではさらに小さく）
+  let titleSize = min(fs ? width * 0.025 : width * 0.02, fs ? 48 : 36);
+  let bodySize = min(fs ? width * 0.015 : width * 0.012, fs ? 24 : 18);
 
   //title 
   textSize(titleSize);
@@ -285,7 +335,8 @@ function informationPage() {
     "The mission of this game is to raise awareness about the impacts of climate change " +
     "on the polar bears’ ecosystem and contribute to tackling climate change.";
 
-  text(infoText, width / 2, height * 0.18, width * 0.75);
+  // テキストの位置を調整
+  text(infoText, width / 2, height * 0.15, width * 0.8);
 
   //Display button 
   const buttonY = height * 0.9;
@@ -373,7 +424,19 @@ function gameoverPage() {
   
   //background image 
   imageMode(CENTER);
-  image(gameoverImage, width / 2, height / 2, width, height);
+  // レスポンシブ対応: 画像サイズを調整
+  let imgWidth = width;
+  let imgHeight = height;
+  let aspectRatio = gameoverImage.width / gameoverImage.height;
+  let canvasAspect = width / height;
+  
+  if (aspectRatio > canvasAspect) {
+    imgHeight = width / aspectRatio;
+  } else {
+    imgWidth = height * aspectRatio;
+  }
+  
+  image(gameoverImage, width / 2, height / 2, imgWidth, imgHeight);
 
   const fs = fullscreen();
 
@@ -393,10 +456,56 @@ function gameoverPage() {
   button("Home", width / 2, homeY, () => (gameState = "start"));
 }
 
+// フルスクリーンボタンを描画する関数
+function drawFullscreenButton() {
+  const btnSize = min(width, height) * 0.06;
+  const margin = min(width, height) * 0.03;
+  const x = width - margin - btnSize / 2;
+  const y = margin + btnSize / 2;
+  
+  // ボタンの背景
+  rectMode(CENTER);
+  fill(255, 255, 255, 200);
+  stroke(0);
+  strokeWeight(2);
+  rect(x, y, btnSize, btnSize, 5);
+  
+  // フルスクリーンアイコン（簡易版）
+  fill(0);
+  noStroke();
+  let iconSize = btnSize * 0.4;
+  let offset = btnSize * 0.15;
+  
+  // フルスクリーンアイコンを描画
+  if (fullscreen()) {
+    // フルスクリーン中: 縮小アイコン
+    rect(x - iconSize/2, y - iconSize/2, iconSize * 0.6, 2);
+    rect(x + iconSize/2, y - iconSize/2, 2, iconSize * 0.6);
+    rect(x - iconSize/2, y + iconSize/2, 2, iconSize * 0.6);
+    rect(x + iconSize/2, y + iconSize/2, iconSize * 0.6, 2);
+  } else {
+    // 通常モード: 拡大アイコン
+    rect(x - iconSize/2 - offset, y - iconSize/2 - offset, iconSize * 0.6, 2);
+    rect(x + iconSize/2 + offset, y - iconSize/2 - offset, 2, iconSize * 0.6);
+    rect(x - iconSize/2 - offset, y + iconSize/2 + offset, 2, iconSize * 0.6);
+    rect(x + iconSize/2 + offset, y + iconSize/2 + offset, iconSize * 0.6, 2);
+  }
+  
+  // クリック判定
+  if (mouseX > x - btnSize/2 && mouseX < x + btnSize/2 &&
+      mouseY > y - btnSize/2 && mouseY < y + btnSize/2) {
+    cursor(HAND);
+    if (mouseIsPressed) {
+      toggleFullscreen();
+    }
+  }
+}
+
 //fucntion to control buttons 
 function button(title, xPos, yPos, action) {
-  const w = width * 0.25;
-  const h = height * 0.07;
+  // レスポンシブ対応: ボタンサイズを調整
+  const w = min(width * 0.25, 300);
+  const h = min(height * 0.07, 50);
   const r = 15;
 
   //boolean to check if mouse is hovering over the button 
@@ -417,13 +526,35 @@ function button(title, xPos, yPos, action) {
   noStroke();
   textFont("VT323");
   textAlign(CENTER, CENTER);
-  textSize(width * 0.025);
+  // レスポンシブ対応: テキストサイズを調整（フルスクリーンと通常モードで分ける）
+  let fs = fullscreen();
+  let textSizeValue = min(fs ? width * 0.02 : width * 0.016, height * 0.035, fs ? 28 : 22);
+  textSize(textSizeValue);
   text(title, xPos, yPos);
 
   //Execute action when pressed 
   if (hovering && mouseIsPressed) {
     action();
   }
+  
+  // カーソルをリセット
+  if (!hovering) {
+    cursor(ARROW);
+  }
+}
+
+// タッチイベント対応（モバイル）
+function touchStarted() {
+  // タッチイベントをマウスイベントとして処理
+  return false; // デフォルトの動作を防ぐ
+}
+
+function touchMoved() {
+  return false; // スクロールを防ぐ
+}
+
+function touchEnded() {
+  return false;
 }
 
 
