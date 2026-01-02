@@ -1,5 +1,7 @@
 # 🐻 Save Polar Bear
 
+![Save Polar Bear Game Screenshot](image.png)
+
 An interactive web-based game developed with p5.js that raises awareness about climate change and its impact on polar bear ecosystems. Players navigate a melting Arctic environment, collecting fish to survive while icebergs gradually disappear due to rising temperatures.
 
 ![Save Polar Bear](https://img.shields.io/badge/Status-Complete-success)
